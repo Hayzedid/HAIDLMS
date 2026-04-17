@@ -1,0 +1,385 @@
+### API Testing Suite for New Backend Features
+### Use with REST Client extension in VS Code or Postman
+
+### CONFIGURATION
+@baseUrl = http://localhost
+@courseServicePort = 4002
+@ideServicePort = 4003
+@analyticsServicePort = 4006
+@authToken = Bearer YOUR_JWT_TOKEN_HERE
+@testUserId = 00000000-0000-0000-0000-000000000001
+@testCourseId = 00000000-0000-0000-0000-000000000002
+@testSubmissionId = 00000000-0000-0000-0000-000000000003
+
+################################################################################
+# 1. PEER CODE REVIEW SYSTEM API TESTS
+################################################################################
+
+### 1.1 Create Review Rubric
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/rubrics
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "courseId": "{{testCourseId}}",
+  "name": "Python Code Review Rubric",
+  "description": "Rubric for reviewing Python assignments",
+  "minReviewsRequired": 2,
+  "allowSelfReview": false,
+  "anonymizeReviewers": true,
+  "anonymizeCodeAuthors": false,
+  "reviewDeadline": "2026-04-18T23:59:59Z",
+  "runMossCheck": true,
+  "mossSimilarityThreshold": 0.75
+}
+
+### 1.2 Get Course Rubrics
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/courses/{{testCourseId}}/rubrics
+Authorization: {{authToken}}
+
+### 1.3 Create Rubric Criterion
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/rubrics/RUBRIC_ID_HERE/criteria
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "Code Quality",
+  "description": "Assess the overall quality and readability of the code",
+  "displayOrder": 1,
+  "weight": 1.5,
+  "maxScore": 5,
+  "scoreLabels": {
+    "1": "Poor - Hard to read, no structure",
+    "2": "Fair - Some organization",
+    "3": "Good - Clear structure",
+    "4": "Very Good - Well organized",
+    "5": "Excellent - Professional quality"
+  },
+  "examples": "Use meaningful variable names, proper indentation, comments where needed",
+  "isRequired": true
+}
+
+### 1.4 Get Rubric Criteria
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/rubrics/RUBRIC_ID_HERE/criteria
+Authorization: {{authToken}}
+
+### 1.5 Assign Reviewers (Round-Robin Algorithm)
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/rubrics/RUBRIC_ID_HERE/assign
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "submissionIds": [
+    "00000000-0000-0000-0000-000000000001",
+    "00000000-0000-0000-0000-000000000002",
+    "00000000-0000-0000-0000-000000000003"
+  ],
+  "reviewsPerSubmission": 2,
+  "algorithm": "round-robin"
+}
+
+### 1.6 Get Reviewer Assignments
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviewers/{{testUserId}}/assignments?status=pending
+Authorization: {{authToken}}
+
+### 1.7 Start Review
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviews/REVIEW_ID_HERE/start
+Authorization: {{authToken}}
+
+### 1.8 Submit Criterion Score
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviews/REVIEW_ID_HERE/scores
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "criterionId": "CRITERION_ID_HERE",
+  "score": 4,
+  "feedback": "Good code structure, but could use more comments"
+}
+
+### 1.9 Add Line Comment
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviews/REVIEW_ID_HERE/comments
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "fileName": "main.py",
+  "lineNumber": 42,
+  "lineEndNumber": 45,
+  "codeSnippet": "def calculate_total(items):\n    return sum(items)",
+  "comment": "Consider adding type hints and docstring",
+  "commentType": "suggestion",
+  "severity": "low"
+}
+
+### 1.10 Get Review Comments
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviews/REVIEW_ID_HERE/comments
+Authorization: {{authToken}}
+
+### 1.11 Submit Review
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviews/REVIEW_ID_HERE/submit
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "overallFeedback": "Good work overall. The code is functional and mostly well-structured. Consider adding more documentation.",
+  "timeSpentSeconds": 1200
+}
+
+### 1.12 Get Submission Reviews
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/submissions/{{testSubmissionId}}/reviews
+Authorization: {{authToken}}
+
+### 1.13 Rate Review Helpfulness
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviews/REVIEW_ID_HERE/rate
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "isHelpful": true
+}
+
+### 1.14 Get Reviewer Stats
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviewers/{{testUserId}}/stats
+Authorization: {{authToken}}
+
+### 1.15 Create Dispute
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/reviews/REVIEW_ID_HERE/dispute
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "authorId": "{{testUserId}}",
+  "reviewerId": "REVIEWER_ID_HERE",
+  "reason": "Unfair scoring",
+  "description": "The reviewer marked me down for not using type hints, but the assignment didn't require them",
+  "requestedOutcome": "score_adjustment"
+}
+
+### 1.16 Get Disputes (Instructor)
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/disputes?status=open
+Authorization: {{authToken}}
+
+### 1.17 Resolve Dispute
+POST {{baseUrl}}:{{courseServicePort}}/api/peer-review/disputes/DISPUTE_ID_HERE/resolve
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "resolvedBy": "INSTRUCTOR_ID_HERE",
+  "resolution": "After review, the score is justified as type hints were covered in the lesson material",
+  "resolutionAction": "no_change"
+}
+
+### 1.18 Get Pending Reviews
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/pending-reviews?reviewerId={{testUserId}}
+Authorization: {{authToken}}
+
+### 1.19 Get Submissions Awaiting Reviews
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/awaiting-reviews?authorId={{testUserId}}
+Authorization: {{authToken}}
+
+### 1.20 Get High-Quality Reviewers
+GET {{baseUrl}}:{{courseServicePort}}/api/peer-review/high-quality-reviewers?limit=10
+Authorization: {{authToken}}
+
+################################################################################
+# 2. LEARNING HEALTH DASHBOARD API TESTS
+################################################################################
+
+### 2.1 Get User Health Score
+GET {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/users/{{testUserId}}/courses/{{testCourseId}}/health-score
+Authorization: {{authToken}}
+
+### 2.2 Get Component Breakdown
+GET {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/users/{{testUserId}}/courses/{{testCourseId}}/component-breakdown
+Authorization: {{authToken}}
+
+### 2.3 Get At-Risk Learners (All)
+GET {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/courses/{{testCourseId}}/at-risk-learners
+Authorization: {{authToken}}
+
+### 2.4 Get Critical At-Risk Learners
+GET {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/courses/{{testCourseId}}/at-risk-learners?riskLevel=critical
+Authorization: {{authToken}}
+
+### 2.5 Generate Instructor Nudge
+GET {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/users/{{testUserId}}/courses/{{testCourseId}}/instructor-nudge
+Authorization: {{authToken}}
+
+### 2.6 Get Dashboard Summary
+GET {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/courses/{{testCourseId}}/dashboard-summary
+Authorization: {{authToken}}
+
+### 2.7 Update Health Score (Single User)
+POST {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/users/{{testUserId}}/courses/{{testCourseId}}/update-health-score
+Authorization: {{authToken}}
+
+### 2.8 Batch Update Health Scores
+POST {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/courses/{{testCourseId}}/batch-update
+Authorization: {{authToken}}
+
+### 2.9 Get Health Score Trends
+GET {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/users/{{testUserId}}/courses/{{testCourseId}}/trends?days=30
+Authorization: {{authToken}}
+
+### 2.10 Get Intervention Recommendations
+GET {{baseUrl}}:{{analyticsServicePort}}/api/learning-health/courses/{{testCourseId}}/interventions
+Authorization: {{authToken}}
+
+################################################################################
+# 3. IDE CLIPBOARD & KEYSTROKE TRACKING API TESTS
+################################################################################
+
+### 3.1 Log Clipboard Attempt
+POST {{baseUrl}}:{{ideServicePort}}/api/clipboard/log-attempt
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "userId": "{{testUserId}}",
+  "sessionId": "SESSION_ID_HERE",
+  "lessonId": "LESSON_ID_HERE",
+  "assessmentId": "ASSESSMENT_ID_HERE",
+  "attemptType": "paste",
+  "source": "keyboard_shortcut",
+  "blocked": true,
+  "contentLength": 150,
+  "detectedBy": "clipboard_api"
+}
+
+### 3.2 Get Session Clipboard Attempts
+GET {{baseUrl}}:{{ideServicePort}}/api/clipboard/session/SESSION_ID_HERE
+Authorization: {{authToken}}
+
+### 3.3 Get Assessment Clipboard Attempts
+GET {{baseUrl}}:{{ideServicePort}}/api/clipboard/assessment/ASSESSMENT_ID_HERE?userId={{testUserId}}
+Authorization: {{authToken}}
+
+### 3.4 Get User Clipboard Stats
+GET {{baseUrl}}:{{ideServicePort}}/api/clipboard/stats/{{testUserId}}?assessmentId=ASSESSMENT_ID_HERE
+Authorization: {{authToken}}
+
+### 3.5 Start Keystroke Session
+POST {{baseUrl}}:{{ideServicePort}}/api/keystroke/start-session
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "userId": "{{testUserId}}",
+  "lessonId": "LESSON_ID_HERE",
+  "assessmentId": "ASSESSMENT_ID_HERE",
+  "problemId": "PROBLEM_ID_HERE"
+}
+
+### 3.6 Log Keystroke Events (Batch)
+POST {{baseUrl}}:{{ideServicePort}}/api/keystroke/log-events
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "events": [
+    {
+      "sessionId": "SESSION_ID_HERE",
+      "timestampMs": 1712880000000,
+      "eventType": "keydown",
+      "keyCode": 65,
+      "keyName": "a",
+      "isSpecialKey": false,
+      "lineNumber": 10,
+      "columnNumber": 5,
+      "charInserted": "a"
+    },
+    {
+      "sessionId": "SESSION_ID_HERE",
+      "timestampMs": 1712880000100,
+      "eventType": "keydown",
+      "keyCode": 8,
+      "keyName": "Backspace",
+      "isSpecialKey": true,
+      "lineNumber": 10,
+      "columnNumber": 6,
+      "charsDeleted": "a"
+    }
+  ]
+}
+
+### 3.7 End Keystroke Session
+POST {{baseUrl}}:{{ideServicePort}}/api/keystroke/end-session/SESSION_ID_HERE
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "finalCode": "def hello():\n    print('Hello World')",
+  "language": "python",
+  "avgTypingSpeedWPM": 45,
+  "avgKeyIntervalMs": 150,
+  "consistencyScore": 85
+}
+
+### 3.8 Get Keystroke Session
+GET {{baseUrl}}:{{ideServicePort}}/api/keystroke/session/SESSION_ID_HERE
+Authorization: {{authToken}}
+
+### 3.9 Get Keystroke Events (For Replay)
+GET {{baseUrl}}:{{ideServicePort}}/api/keystroke/events/SESSION_ID_HERE?limit=10000
+Authorization: {{authToken}}
+
+### 3.10 Get User Typing Patterns
+GET {{baseUrl}}:{{ideServicePort}}/api/keystroke/patterns/{{testUserId}}
+Authorization: {{authToken}}
+
+### 3.11 Get Sessions with Integrity Concerns
+GET {{baseUrl}}:{{ideServicePort}}/api/keystroke/integrity-concerns?userId={{testUserId}}&assessmentId=ASSESSMENT_ID_HERE
+Authorization: {{authToken}}
+
+### 3.12 Get Typing Pattern Deviations
+GET {{baseUrl}}:{{ideServicePort}}/api/keystroke/pattern-deviations?userId={{testUserId}}
+Authorization: {{authToken}}
+
+### 3.13 Flag Session for Integrity Review
+POST {{baseUrl}}:{{ideServicePort}}/api/keystroke/flag-session
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "userId": "{{testUserId}}",
+  "sessionId": "SESSION_ID_HERE",
+  "assessmentId": "ASSESSMENT_ID_HERE",
+  "flagType": "typing_burst",
+  "severity": "high",
+  "description": "Detected 50+ keystrokes in less than 1 second, indicating possible paste",
+  "evidence": {
+    "burstDuration": 850,
+    "keystrokeCount": 52,
+    "avgIntervalMs": 16
+  }
+}
+
+### 3.14 Get Integrity Flags
+GET {{baseUrl}}:{{ideServicePort}}/api/keystroke/integrity-flags?userId={{testUserId}}&severity=high&reviewed=false
+Authorization: {{authToken}}
+
+### 3.15 Review Integrity Flag
+POST {{baseUrl}}:{{ideServicePort}}/api/keystroke/review-flag/FLAG_ID_HERE
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "reviewedBy": "INSTRUCTOR_ID_HERE",
+  "reviewNotes": "Reviewed keystroke replay - appears to be legitimate fast typing, not paste",
+  "actionTaken": "no_action"
+}
+
+################################################################################
+# 4. HEALTH CHECKS
+################################################################################
+
+### 4.1 Course Service Health
+GET {{baseUrl}}:{{courseServicePort}}/health
+
+### 4.2 IDE Service Health
+GET {{baseUrl}}:{{ideServicePort}}/health
+
+### 4.3 Analytics Service Health
+GET {{baseUrl}}:{{analyticsServicePort}}/health

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv CourseCatalog.tsx CourseCatalog.old.tsx)",
+      "Bash(mv CourseCatalog.new.tsx CourseCatalog.tsx)"
+    ]
+  }
+}

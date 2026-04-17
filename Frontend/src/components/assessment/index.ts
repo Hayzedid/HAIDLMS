@@ -1,0 +1,1 @@
+export { AdaptiveQuizInterface } from './AdaptiveQuizInterface';

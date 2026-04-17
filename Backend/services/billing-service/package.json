@@ -1,0 +1,47 @@
+{
+  "name": "@techlearn/billing-service",
+  "version": "1.0.0",
+  "description": "Multi-gateway payment processing and subscription management for TechLearn LMS",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:init": "ts-node src/db/init.ts",
+    "test": "jest"
+  },
+  "keywords": ["billing", "payments", "subscriptions", "stripe", "paystack", "flutterwave"],
+  "author": "TechLearn",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "@techlearn/shared": "*",
+    "express": "^4.19.0",
+    "stripe": "^15.0.0",
+    "paystack": "^2.0.1",
+    "flutterwave-node-v3": "^1.0.10",
+    "pg": "^8.11.0",
+    "cors": "^2.8.5",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1",
+    "zod": "^3.22.4",
+    "axios": "^1.6.5",
+    "node-cron": "^3.0.3",
+    "pdfkit": "^0.14.0",
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/express": "^4.17.21",
+    "@types/pg": "^8.10.9",
+    "@types/cors": "^2.8.17",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node-cron": "^3.0.11",
+    "@types/pdfkit": "^0.13.3",
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "@types/jest": "^29.5.11",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1"
+  }
+}

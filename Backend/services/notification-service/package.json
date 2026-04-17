@@ -1,0 +1,38 @@
+{
+  "name": "@techlearn/notification-service",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:init": "ts-node src/db/init.ts",
+    "worker": "ts-node src/workers/notification.worker.ts"
+  },
+  "dependencies": {
+    "@techlearn/shared": "*",
+    "express": "^4.19.0",
+    "ws": "^8.17.0",
+    "cors": "^2.8.5",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.22.0",
+    "pg": "^8.11.0",
+    "ioredis": "^5.3.0",
+    "bull": "^4.12.0",
+    "kafkajs": "^2.2.4",
+    "@sendgrid/mail": "^8.1.0",
+    "handlebars": "^4.7.8",
+    "axios": "^1.7.0",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/ws": "^8.5.10",
+    "@types/cors": "^2.8.17",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.0.0",
+    "@types/bull": "^4.10.0",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.4.0",
+    "ts-node-dev": "^2.0.0"
+  }
+}

@@ -1,0 +1,565 @@
+import OpenAI from 'openai';
+import { pool } from '../db/pool';
+
+/**
+ * AI Socratic Tutor Service
+ *
+ * CRITICAL: This AI NEVER writes code for students.
+ * It only explains, asks questions, and provides hints.
+ *
+ * Features:
+ * - Socratic method questioning
+ * - Error explanations (never provides fixes)
+ * - "What if?" extension challenges
+ * - Concept checks
+ * - Safety & compliance logging
+ * - Usage tracking and rate limiting
+ */
+
+interface ChatSession {
+  id: string;
+  userId: string;
+  courseId?: string;
+  lessonId?: string;
+  assessmentId?: string;
+  problemId?: string;
+  contextType: string;
+  startedAt: Date;
+  totalMessages: number;
+  studentCodeContext?: string;
+  isActive: boolean;
+}
+
+interface ChatMessage {
+  id: string;
+  sessionId: string;
+  role: 'student' | 'assistant' | 'system';
+  content: string;
+  messageType?: string;
+  codeSnippet?: string;
+  tokensUsed?: number;
+  responseTimeMs?: number;
+  createdAt: Date;
+}
+
+interface ErrorExplanation {
+  id: string;
+  userId: string;
+  sessionId?: string;
+  errorMessage: string;
+  errorType: string;
+  language: string;
+  studentCode: string;
+  lineNumber?: number;
+  aiExplanation: string;
+  suggestedFix: string;
+  learningResourceLinks: string[];
+  wasHelpful?: boolean;
+  resolvedIndependently: boolean;
+}
+
+interface ExtensionChallenge {
+  id: string;
+  userId: string;
+  sessionId?: string;
+  baseProblemId?: string;
+  studentCode: string;
+  challengePrompt: string;
+  challengeType: string;
+  difficultyLevel: number;
+  accepted: boolean;
+  completed: boolean;
+}
+
+class AITutorService {
+  private openai: OpenAI;
+  private readonly SYSTEM_PROMPT = `You are a Socratic programming tutor for a coding bootcamp LMS. Your role is to help students learn by:
+
+1. NEVER writing code for them - you explain concepts and guide thinking
+2. Asking probing questions to make them think deeply
+3. Breaking down complex problems into smaller steps
+4. Explaining error messages in plain language
+5. Suggesting where to look in documentation
+6. Proposing "what if?" scenarios to extend their learning
+
+CRITICAL RULES:
+- If asked to write code, respond: "I can't write the code for you, but I can help you think through the logic. What approach were you considering?"
+- If asked for the answer, respond: "Let me help you discover the answer. What have you tried so far?"
+- If asked to debug, explain the error but don't give the fix: "This error means X. Where in your code do you think this might be happening?"
+- Use the Socratic method: answer questions with guiding questions
+- Be encouraging but don't solve problems for students
+- If detecting cheating attempts, log safety violation
+
+Your goal: Help students become independent problem solvers, not dependent on AI assistance.`;
+
+  constructor() {
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+
+  /**
+   * Start a new AI tutor chat session
+   */
+  async startChatSession(params: {
+    userId: string;
+    courseId?: string;
+    lessonId?: string;
+    assessmentId?: string;
+    problemId?: string;
+    contextType: string;
+    studentCodeContext?: string;
+  }): Promise<ChatSession> {
+    // Check if AI is enabled for this context
+    const config = await this.getTutorConfig(params.courseId, params.assessmentId);
+
+    if (!config.isEnabled) {
+      throw new Error('AI tutor is disabled for this context');
+    }
+
+    // Check rate limits
+    const todayUsage = await this.getTodayUsage(params.userId);
+    if (todayUsage.totalSessions >= config.maxSessionsPerDay) {
+      throw new Error(`Daily session limit reached (${config.maxSessionsPerDay})`);
+    }
+
+    // Check if in proctored exam
+    if (params.assessmentId && config.restrictedDuringExam) {
+      const isProctored = await this.isAssessmentProctored(params.assessmentId);
+      if (isProctored) {
+        throw new Error('AI tutor is disabled during proctored assessments');
+      }
+    }
+
+    // Create session
+    const result = await pool.query(
+      `INSERT INTO ai_chat_sessions (
+        user_id, course_id, lesson_id, assessment_id, problem_id,
+        context_type, student_code_context
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *`,
+      [
+        params.userId,
+        params.courseId,
+        params.lessonId,
+        params.assessmentId,
+        params.problemId,
+        params.contextType,
+        params.studentCodeContext,
+      ]
+    );
+
+    // Add system message
+    await this.addMessage({
+      sessionId: result.rows[0].id,
+      role: 'system',
+      content: this.SYSTEM_PROMPT,
+      messageType: 'system_init',
+    });
+
+    return this.mapSessionRow(result.rows[0]);
+  }
+
+  /**
+   * Send message to AI tutor and get response
+   */
+  async sendMessage(params: {
+    sessionId: string;
+    userId: string;
+    content: string;
+    codeSnippet?: string;
+  }): Promise<ChatMessage> {
+    const startTime = Date.now();
+
+    // Get session
+    const session = await this.getChatSession(params.sessionId);
+    if (!session || session.userId !== params.userId) {
+      throw new Error('Invalid session');
+    }
+
+    if (!session.isActive) {
+      throw new Error('Session is no longer active');
+    }
+
+    // Check rate limits
+    const config = await this.getTutorConfig(session.courseId, session.assessmentId);
+    if (session.totalMessages >= config.maxMessagesPerSession) {
+      throw new Error(`Session message limit reached (${config.maxMessagesPerSession})`);
+    }
+
+    // Check for code generation attempts (safety check)
+    const violation = this.detectViolation(params.content);
+    if (violation) {
+      await this.logSafetyViolation({
+        sessionId: params.sessionId,
+        violationType: violation.type,
+        studentPrompt: params.content,
+        actionTaken: 'warned',
+        severity: violation.severity,
+      });
+
+      // Return warning message instead of AI response
+      return await this.addMessage({
+        sessionId: params.sessionId,
+        role: 'assistant',
+        content: violation.warningMessage,
+        messageType: 'safety_warning',
+      });
+    }
+
+    // Add student message
+    await this.addMessage({
+      sessionId: params.sessionId,
+      role: 'student',
+      content: params.content,
+      codeSnippet: params.codeSnippet,
+    });
+
+    // Get conversation history
+    const history = await this.getConversationHistory(params.sessionId);
+
+    // Call OpenAI
+    const completion = await this.openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: history.map((msg) => ({
+        role: msg.role === 'student' ? 'user' : msg.role,
+        content: msg.content,
+      })),
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    const responseTimeMs = Date.now() - startTime;
+    const aiResponse = completion.choices[0].message.content || '';
+    const tokensUsed = completion.usage?.total_tokens || 0;
+
+    // Detect message type
+    const messageType = this.detectMessageType(aiResponse);
+
+    // Add AI response
+    const assistantMessage = await this.addMessage({
+      sessionId: params.sessionId,
+      role: 'assistant',
+      content: aiResponse,
+      messageType,
+      tokensUsed,
+      responseTimeMs,
+    });
+
+    // Update usage stats
+    await this.updateUsageStats(params.userId, tokensUsed);
+
+    return assistantMessage;
+  }
+
+  /**
+   * Create new tutoring session
+   */
+  private createSession(request: TutorRequest): TutorSession {
+    const systemPrompt = this.getSystemPrompt(request.mode || this.TUTOR_MODE);
+
+    return {
+      id: uuidv4(),
+      userId: request.userId,
+      courseId: request.courseId,
+      problemId: request.problemId,
+      mode: request.mode || this.TUTOR_MODE,
+      context: request.problemContext || '',
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+          timestamp: new Date(),
+        },
+      ],
+      codeSnapshot: request.code,
+      language: request.language,
+      startedAt: new Date(),
+      hintDepth: 0,
+      isActive: true,
+    };
+  }
+
+  /**
+   * Get system prompt based on tutor mode
+   */
+  private getSystemPrompt(mode: TutorMode): string {
+    const basePrompt = `You are an expert programming tutor for an educational platform. Your goal is to help students learn and understand, not just solve their problems.
+
+CRITICAL RULES:
+1. NEVER provide complete solutions to homework/assignments
+2. Use the Socratic method - guide with questions, not answers
+3. Focus on understanding concepts, not just syntax
+4. Encourage independent thinking
+5. Point out learning resources when appropriate`;
+
+    const modePrompts = {
+      socratic: `${basePrompt}
+
+MODE: Socratic Method
+- Ask probing questions that lead students to discover solutions
+- When they make mistakes, ask them to explain their reasoning
+- Guide them to identify their own errors
+- Celebrate "aha!" moments
+- If they're stuck after 3 hints, provide a small nudge but not the full answer`,
+
+      direct: `${basePrompt}
+
+MODE: Direct Teaching
+- Explain concepts clearly and concisely
+- Provide examples to illustrate points
+- Break down complex topics into smaller pieces
+- Still avoid giving complete homework solutions
+- Focus on teaching the underlying principles`,
+
+      hints: `${basePrompt}
+
+MODE: Progressive Hints
+- Provide increasingly specific hints (max 3 levels)
+- Level 1: High-level approach
+- Level 2: Specific strategy or algorithm
+- Level 3: Pseudocode or key insight
+- Never provide actual code solutions`,
+
+      review: `${basePrompt}
+
+MODE: Code Review
+- Review code for correctness, style, and best practices
+- Point out bugs, performance issues, and security concerns
+- Suggest improvements with educational explanations
+- Ask questions about design decisions
+- Encourage refactoring for learning`,
+    };
+
+    return modePrompts[mode] || modePrompts.socratic;
+  }
+
+  /**
+   * Generate AI response
+   */
+  private async generateResponse(session: TutorSession, request: TutorRequest): Promise<TutorResponse> {
+    try {
+      // Build conversation history
+      const messages = session.messages.map((msg) => ({
+        role: msg.role as 'system' | 'user' | 'assistant',
+        content: this.formatMessageContent(msg),
+      }));
+
+      // Add context if available
+      if (request.code) {
+        messages.push({
+          role: 'user',
+          content: `Current code:\n\`\`\`${request.language || 'text'}\n${request.code}\n\`\`\``,
+        });
+      }
+
+      // Call OpenAI API
+      const completion = await this.openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+
+      const aiMessage = completion.choices[0].message.content || 'I apologize, but I encountered an issue. Please try again.';
+
+      // Extract hints if in hints mode
+      const hints = session.mode === 'hints' ? this.extractHints(aiMessage) : undefined;
+
+      // Generate code review if requested
+      const codeReview = session.mode === 'review' && request.code ? await this.reviewCode(request.code, request.language || 'javascript') : undefined;
+
+      // Find relevant resources
+      const resources = await this.findRelevantResources(request.message, request.language);
+
+      return {
+        sessionId: session.id,
+        message: aiMessage,
+        hints,
+        codeReview,
+        resources,
+        shouldEndSession: false,
+      };
+    } catch (error) {
+      console.error('AI tutor error:', error);
+      return {
+        sessionId: session.id,
+        message: 'I apologize, but I encountered an error. Please try asking your question again.',
+        shouldEndSession: false,
+      };
+    }
+  }
+
+  /**
+   * Review code
+   */
+  private async reviewCode(code: string, language: string): Promise<CodeReview> {
+    try {
+      const prompt = `Review this ${language} code and provide educational feedback:
+
+\`\`\`${language}
+${code}
+\`\`\`
+
+Provide:
+1. Overall assessment
+2. Strengths (what's done well)
+3. Improvements (what could be better, with explanations)
+4. Any bugs or issues
+5. Performance considerations
+6. Security concerns (if any)
+7. Best practices recommendations
+
+Format as JSON with keys: overall, strengths (array), improvements (array), bugs (array with {line, severity, description, suggestion}), performanceIssues (array), securityIssues (array), bestPractices (array)`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+      });
+
+      const review = JSON.parse(completion.choices[0].message.content || '{}');
+
+      return {
+        overall: review.overall || 'Code review completed.',
+        strengths: review.strengths || [],
+        improvements: review.improvements || [],
+        bugs: review.bugs || [],
+        performanceIssues: review.performanceIssues || [],
+        securityIssues: review.securityIssues || [],
+        bestPractices: review.bestPractices || [],
+      };
+    } catch (error) {
+      console.error('Code review error:', error);
+      return {
+        overall: 'Unable to complete code review at this time.',
+        strengths: [],
+        improvements: [],
+      };
+    }
+  }
+
+  /**
+   * Extract hints from message
+   */
+  private extractHints(message: string): string[] {
+    // Simple extraction - in production, use more sophisticated parsing
+    const hints: string[] = [];
+    const lines = message.split('\n');
+
+    for (const line of lines) {
+      if (line.match(/^(Hint|Level|Step)\s*\d+:/i)) {
+        hints.push(line.replace(/^(Hint|Level|Step)\s*\d+:\s*/i, '').trim());
+      }
+    }
+
+    return hints.length > 0 ? hints : [message];
+  }
+
+  /**
+   * Find relevant learning resources
+   */
+  private async findRelevantResources(query: string, language?: string): Promise<Resource[]> {
+    // In production, integrate with documentation APIs (MDN, Python docs, etc.)
+    // For now, return static educational resources
+
+    const resources: Resource[] = [];
+
+    if (language === 'javascript' || language === 'typescript') {
+      resources.push({
+        title: 'MDN Web Docs',
+        url: 'https://developer.mozilla.org',
+        type: 'documentation',
+        relevance: 0.9,
+      });
+    }
+
+    if (language === 'python') {
+      resources.push({
+        title: 'Python Official Documentation',
+        url: 'https://docs.python.org',
+        type: 'documentation',
+        relevance: 0.9,
+      });
+    }
+
+    return resources;
+  }
+
+  /**
+   * Format message content
+   */
+  private formatMessageContent(message: TutorMessage): string {
+    let content = message.content;
+
+    if (message.metadata?.code) {
+      content += `\n\nCode context:\n\`\`\`${message.metadata.language || ''}\n${message.metadata.code}\n\`\`\``;
+    }
+
+    return content;
+  }
+
+  /**
+   * Check if session should end
+   */
+  private shouldEndSession(session: TutorSession, lastMessage: string): boolean {
+    const endPhrases = [
+      'thank you',
+      'thanks',
+      'got it',
+      'understood',
+      'clear now',
+      'solved',
+      'working now',
+      'fixed it',
+    ];
+
+    const lowerMessage = lastMessage.toLowerCase();
+    return endPhrases.some((phrase) => lowerMessage.includes(phrase)) || session.messages.length > 50;
+  }
+
+  /**
+   * Get session
+   */
+  getSession(sessionId: string): TutorSession | undefined {
+    return this.sessions.get(sessionId);
+  }
+
+  /**
+   * Get user sessions
+   */
+  getUserSessions(userId: string): TutorSession[] {
+    return Array.from(this.sessions.values()).filter((session) => session.userId === userId);
+  }
+
+  /**
+   * End session
+   */
+  endSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.isActive = false;
+      session.endedAt = new Date();
+    }
+  }
+
+  /**
+   * Clear old sessions (cleanup)
+   */
+  clearOldSessions(hoursOld = 24): number {
+    const cutoffTime = Date.now() - hoursOld * 60 * 60 * 1000;
+    let cleared = 0;
+
+    for (const [id, session] of this.sessions.entries()) {
+      if (!session.isActive && session.endedAt && session.endedAt.getTime() < cutoffTime) {
+        this.sessions.delete(id);
+        cleared++;
+      }
+    }
+
+    return cleared;
+  }
+}
+
+export const aiTutorService = new AITutorService();

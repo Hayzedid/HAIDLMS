@@ -1,0 +1,58 @@
+{
+  "name": "@techlearn/integrity-service",
+  "version": "1.0.0",
+  "description": "Academic integrity and accountability service for TechLearn LMS",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:init": "node -r ts-node/register src/db/init.ts",
+    "test": "jest"
+  },
+  "keywords": [
+    "integrity",
+    "proctoring",
+    "plagiarism",
+    "accountability"
+  ],
+  "author": "TechLearn",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3",
+    "ws": "^8.14.2",
+    "uuid": "^9.0.1",
+    "zod": "^3.22.4",
+    "jsonwebtoken": "^9.0.2",
+    "axios": "^1.6.2",
+    "multer": "^1.4.5-lts.1",
+    "sharp": "^0.33.0",
+    "face-api.js": "^0.22.2",
+    "canvas": "^2.11.2",
+    "@tensorflow/tfjs-node": "^4.15.0",
+    "similarity": "^1.2.1",
+    "string-similarity": "^4.0.4",
+    "diff": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/ws": "^8.5.10",
+    "@types/uuid": "^9.0.7",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/multer": "^1.4.11",
+    "@types/diff": "^5.0.9",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.0.2",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

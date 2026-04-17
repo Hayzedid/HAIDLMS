@@ -1,0 +1,35 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { vivaApi } from "../../api/viva.api";
+import { Mic, Volume2, FileText, Award } from "lucide-react";
+export const VivaAssessmentPage = () => {
+    const [selectedAssessment, setSelectedAssessment] = useState(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const { data: vivaData, isLoading } = useQuery({
+        queryKey: ["viva-assessments"],
+        queryFn: vivaApi.getAssessments,
+    });
+    const handleStartViva = (assessment) => {
+        setSelectedAssessment(assessment);
+    };
+    const getStatusColor = (status) => {
+        const colors = {
+            pending: "bg-yellow-100 text-yellow-800",
+            "in-progress": "bg-blue-100 text-blue-800",
+            completed: "bg-green-100 text-green-800",
+        };
+        return colors[status] || "bg-gray-100 text-gray-800";
+    };
+    if (selectedAssessment) {
+        return (_jsx("div", { className: "min-h-screen bg-gray-900 flex items-center justify-center p-4", children: _jsxs("div", { className: "bg-gray-800 rounded-lg shadow-2xl p-8 max-w-4xl w-full", children: [_jsxs("div", { className: "mb-6", children: [_jsx("button", { onClick: () => setSelectedAssessment(null), className: "text-gray-400 hover:text-white mb-4", children: "\u2190 Back" }), _jsx("h1", { className: "text-3xl font-bold text-white", children: selectedAssessment.title }), _jsxs("p", { className: "text-gray-400", children: ["with ", selectedAssessment.instructor] })] }), _jsxs("div", { className: "bg-gray-700 rounded-lg p-4 mb-6 text-center", children: [_jsx("p", { className: "text-gray-300 text-sm mb-2", children: "Time Remaining" }), _jsxs("p", { className: "text-3xl font-bold text-blue-400", children: [selectedAssessment.duration, ":00"] })] }), _jsxs("div", { className: "bg-gray-700 rounded-lg p-6 mb-6", children: [_jsxs("div", { className: "flex items-center gap-3 mb-4", children: [_jsx(FileText, { className: "w-6 h-6 text-blue-400" }), _jsxs("h2", { className: "text-xl font-semibold text-white", children: ["Question 1 of ", selectedAssessment.questions.length] })] }), _jsx("p", { className: "text-lg text-gray-200", children: selectedAssessment.questions[0] })] }), _jsx("div", { className: `rounded-lg p-4 mb-6 ${isRecording ? "bg-red-900" : "bg-gray-700"}`, children: _jsxs("div", { className: "flex items-center gap-3", children: [_jsx("div", { className: `w-4 h-4 rounded-full ${isRecording ? "bg-red-500 animate-pulse" : "bg-gray-500"}` }), _jsx("span", { className: "text-white font-medium", children: isRecording ? "Recording in progress..." : "Ready to record" })] }) }), _jsxs("div", { className: "flex gap-4", children: [_jsx("button", { onClick: () => setIsRecording(!isRecording), className: `flex-1 py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition ${isRecording
+                                    ? "bg-red-600 hover:bg-red-700 text-white"
+                                    : "bg-blue-600 hover:bg-blue-700 text-white"}`, children: isRecording ? (_jsxs(_Fragment, { children: [_jsx(Volume2, { className: "w-5 h-5" }), "Stop Recording"] })) : (_jsxs(_Fragment, { children: [_jsx(Mic, { className: "w-5 h-5" }), "Start Recording"] })) }), _jsx("button", { className: "flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-lg transition", children: "Skip Question" }), _jsx("button", { onClick: () => setSelectedAssessment(null), className: "flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition", children: "Submit" })] })] }) }));
+    }
+    return (_jsx("div", { className: "min-h-screen bg-gray-50", children: _jsxs("div", { className: "max-w-7xl mx-auto px-4 py-8", children: [_jsxs("div", { className: "mb-8", children: [_jsx("h1", { className: "text-3xl font-bold text-gray-900 mb-2", children: "Viva Assessments" }), _jsx("p", { className: "text-gray-600", children: "Voice-based oral examinations and assessments" })] }), isLoading ? (_jsx("div", { className: "text-center py-12", children: _jsx("div", { className: "inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" }) })) : !vivaData?.length ? (_jsxs("div", { className: "bg-white rounded-lg shadow p-12 text-center text-gray-600", children: [_jsx(Mic, { className: "w-16 h-16 mx-auto text-gray-300 mb-4" }), _jsx("p", { children: "No viva assessments available" })] })) : (_jsx("div", { className: "space-y-4", children: vivaData.map((assessment) => (_jsxs("div", { className: "bg-white rounded-lg shadow-md hover:shadow-lg transition p-6", children: [_jsxs("div", { className: "flex justify-between items-start mb-4", children: [_jsxs("div", { children: [_jsx("h3", { className: "text-xl font-bold text-gray-900", children: assessment.title }), _jsxs("p", { className: "text-gray-600", children: ["Course: ", assessment.course] })] }), _jsx("span", { className: `inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(assessment.status)}`, children: assessment.status.replace("-", " ").toUpperCase() })] }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-4 mb-4", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm text-gray-600", children: "Instructor" }), _jsx("p", { className: "font-semibold text-gray-900", children: assessment.instructor })] }), _jsxs("div", { children: [_jsx("p", { className: "text-sm text-gray-600", children: "Duration" }), _jsxs("p", { className: "font-semibold text-gray-900", children: [assessment.duration, " minutes"] })] }), assessment.scheduledDate && (_jsxs("div", { children: [_jsx("p", { className: "text-sm text-gray-600", children: "Scheduled" }), _jsx("p", { className: "font-semibold text-gray-900", children: new Date(assessment.scheduledDate).toLocaleDateString() })] }))] }), assessment.score !== undefined && (_jsxs("div", { className: "mb-4 p-3 bg-blue-50 rounded-lg", children: [_jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Award, { className: "w-5 h-5 text-blue-600" }), _jsxs("span", { className: "font-semibold text-gray-900", children: ["Score: ", assessment.score, "/100"] })] }), assessment.feedback && (_jsx("p", { className: "text-sm text-gray-700 mt-2", children: assessment.feedback }))] })), _jsxs("button", { onClick: () => handleStartViva(assessment), disabled: assessment.status === "completed", className: `font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition ${assessment.status === "completed"
+                                    ? "bg-gray-300 text-gray-700 cursor-not-allowed"
+                                    : "bg-blue-600 hover:bg-blue-700 text-white"}`, children: [_jsx(Mic, { className: "w-4 h-4" }), assessment.status === "completed"
+                                        ? "Already Completed"
+                                        : "Start Assessment"] })] }, assessment.id))) }))] }) }));
+};
+export default VivaAssessmentPage;

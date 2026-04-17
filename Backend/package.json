@@ -1,0 +1,22 @@
+{
+  "name": "techlearn-backend",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "api-gateway",
+    "services/*",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=api-gateway\" \"npm run dev --workspace=services/auth-service\" \"npm run dev --workspace=services/course-service\" \"npm run dev --workspace=services/ide-service\" \"npm run dev --workspace=services/analytics-service\" \"npm run dev --workspace=services/notification-service\" \"npm run dev --workspace=services/billing-service\"",
+    "build": "npm run build --workspaces",
+    "lint": "eslint \"**/*.ts\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "typescript": "^5.4.0"
+  }
+}
