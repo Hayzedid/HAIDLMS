@@ -150,8 +150,12 @@ async function startServer() {
       console.log(`[notification-service] 🔌 WebSocket: ws://localhost:${PORT}/ws/notifications`);
     });
   } catch (error) {
-    console.error('[notification-service] ❌ Failed to start server:', error);
-    process.exit(1);
+    console.error('[notification-service] ⚠️ Database connection failed, but starting server anyway:', error);
+    
+    server.listen(PORT, () => {
+      console.log(`[notification-service] 🚀 Server running on port ${PORT} (without DB)`);
+      console.log(`[notification-service] 📝 Health check: http://localhost:${PORT}/health`);
+    });
   }
 }
 

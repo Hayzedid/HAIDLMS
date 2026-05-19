@@ -8,9 +8,13 @@ export interface AuthPayload {
   organizationId?: string;
 }
 
-export interface AuthRequest extends Request {
-  user?: AuthPayload;
+declare global {
+  namespace Express {
+    interface User extends AuthPayload {}
+  }
 }
+
+export interface AuthRequest extends Request {}
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;

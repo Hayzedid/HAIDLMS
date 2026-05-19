@@ -1,7 +1,6 @@
 import { Router } from 'express';
+import { authenticate, authorize } from '../middleware/authenticate';
 import { webhooksController } from '../controllers/webhooks.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { authorizeRoles } from '../middlewares/role.middleware';
 
 const router = Router();
 
@@ -389,7 +388,7 @@ router.get('/deliveries', authenticate, webhooksController.getWebhookDeliveries.
  *       200:
  *         description: Pending deliveries retrieved
  */
-router.get('/deliveries/pending', authenticate, authorizeRoles('admin'), webhooksController.getPendingDeliveries.bind(webhooksController));
+router.get('/deliveries/pending', authenticate, authorize('admin'), webhooksController.getPendingDeliveries.bind(webhooksController));
 
 /**
  * @swagger
@@ -491,7 +490,7 @@ router.post('/deliveries/:deliveryId/retry', authenticate, webhooksController.re
  *       201:
  *         description: Event subscription created
  */
-router.post('/subscriptions', authenticate, authorizeRoles('admin'), webhooksController.createEventSubscription.bind(webhooksController));
+router.post('/subscriptions', authenticate, authorize('admin'), webhooksController.createEventSubscription.bind(webhooksController));
 
 /**
  * @swagger
@@ -510,7 +509,7 @@ router.post('/subscriptions', authenticate, authorizeRoles('admin'), webhooksCon
  *       200:
  *         description: Event subscriptions retrieved
  */
-router.get('/subscriptions', authenticate, authorizeRoles('admin'), webhooksController.getEventSubscriptions.bind(webhooksController));
+router.get('/subscriptions', authenticate, authorize('admin'), webhooksController.getEventSubscriptions.bind(webhooksController));
 
 /**
  * @swagger
@@ -530,7 +529,7 @@ router.get('/subscriptions', authenticate, authorizeRoles('admin'), webhooksCont
  *       200:
  *         description: Event subscription deleted
  */
-router.delete('/subscriptions/:subscriptionId', authenticate, authorizeRoles('admin'), webhooksController.deleteEventSubscription.bind(webhooksController));
+router.delete('/subscriptions/:subscriptionId', authenticate, authorize('admin'), webhooksController.deleteEventSubscription.bind(webhooksController));
 
 // ========================================
 // EVENT HANDLERS
@@ -574,7 +573,7 @@ router.delete('/subscriptions/:subscriptionId', authenticate, authorizeRoles('ad
  *       201:
  *         description: Event handler created
  */
-router.post('/handlers', authenticate, authorizeRoles('admin'), webhooksController.createEventHandler.bind(webhooksController));
+router.post('/handlers', authenticate, authorize('admin'), webhooksController.createEventHandler.bind(webhooksController));
 
 /**
  * @swagger
@@ -593,7 +592,7 @@ router.post('/handlers', authenticate, authorizeRoles('admin'), webhooksControll
  *       200:
  *         description: Event handlers retrieved
  */
-router.get('/handlers', authenticate, authorizeRoles('admin'), webhooksController.getEventHandlers.bind(webhooksController));
+router.get('/handlers', authenticate, authorize('admin'), webhooksController.getEventHandlers.bind(webhooksController));
 
 // ========================================
 // WEBHOOK LOGS
@@ -665,7 +664,7 @@ router.get('/logs', authenticate, webhooksController.getWebhookLogs.bind(webhook
  *       201:
  *         description: Event replay queued
  */
-router.post('/replay', authenticate, authorizeRoles('admin'), webhooksController.createEventReplay.bind(webhooksController));
+router.post('/replay', authenticate, authorize('admin'), webhooksController.createEventReplay.bind(webhooksController));
 
 /**
  * @swagger
@@ -679,7 +678,7 @@ router.post('/replay', authenticate, authorizeRoles('admin'), webhooksController
  *       200:
  *         description: Event replays retrieved
  */
-router.get('/replay', authenticate, authorizeRoles('admin'), webhooksController.getEventReplays.bind(webhooksController));
+router.get('/replay', authenticate, authorize('admin'), webhooksController.getEventReplays.bind(webhooksController));
 
 // ========================================
 // STATISTICS

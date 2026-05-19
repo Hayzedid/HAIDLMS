@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { notificationController } from '../controllers/notification.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { authorizeRoles } from '../middlewares/role.middleware';
+import { authenticate, authorize } from '../middleware/authenticate';
 
 const router = Router();
 
@@ -313,7 +312,7 @@ router.post('/test', authenticate, notificationController.sendTestNotification.b
  *       200:
  *         description: Bulk notifications sent
  */
-router.post('/bulk', authenticate, authorizeRoles('admin'), notificationController.sendBulkNotification.bind(notificationController));
+router.post('/bulk', authenticate, authorize('admin'), notificationController.sendBulkNotification.bind(notificationController));
 
 /**
  * @swagger
@@ -334,7 +333,7 @@ router.post('/bulk', authenticate, authorizeRoles('admin'), notificationControll
  *       200:
  *         description: Old notifications archived
  */
-router.post('/archive-old', authenticate, authorizeRoles('admin'), notificationController.archiveOldNotifications.bind(notificationController));
+router.post('/archive-old', authenticate, authorize('admin'), notificationController.archiveOldNotifications.bind(notificationController));
 
 /**
  * @swagger
@@ -360,6 +359,6 @@ router.post('/archive-old', authenticate, authorizeRoles('admin'), notificationC
  *       200:
  *         description: Digests sent successfully
  */
-router.post('/send-digests', authenticate, authorizeRoles('admin'), notificationController.sendDigests.bind(notificationController));
+router.post('/send-digests', authenticate, authorize('admin'), notificationController.sendDigests.bind(notificationController));
 
 export default router;

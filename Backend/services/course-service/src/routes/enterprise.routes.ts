@@ -1,7 +1,6 @@
 import { Router } from 'express';
+import { authenticate, authorize } from '../middleware/authenticate';
 import { enterpriseController } from '../controllers/enterprise.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { authorizeRoles } from '../middlewares/role.middleware';
 
 const router = Router();
 
@@ -48,7 +47,7 @@ const router = Router();
 router.post(
   '/organizations',
   authenticate,
-  authorizeRoles('admin'),
+  authorize('admin'),
   enterpriseController.createOrganization.bind(enterpriseController)
 );
 
@@ -84,7 +83,7 @@ router.post(
 router.get(
   '/organizations',
   authenticate,
-  authorizeRoles('admin'),
+  authorize('admin'),
   enterpriseController.listOrganizations.bind(enterpriseController)
 );
 
@@ -163,7 +162,7 @@ router.put(
 router.delete(
   '/organizations/:id',
   authenticate,
-  authorizeRoles('admin'),
+  authorize('admin'),
   enterpriseController.deleteOrganization.bind(enterpriseController)
 );
 
@@ -304,7 +303,7 @@ router.delete(
 router.post(
   '/licenses',
   authenticate,
-  authorizeRoles('admin'),
+  authorize('admin'),
   enterpriseController.createLicense.bind(enterpriseController)
 );
 
@@ -389,7 +388,7 @@ router.get(
 router.post(
   '/organizations/:organizationId/analytics/aggregate',
   authenticate,
-  authorizeRoles('admin'),
+  authorize('admin'),
   enterpriseController.aggregateOrganizationAnalytics.bind(enterpriseController)
 );
 

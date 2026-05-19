@@ -213,7 +213,7 @@ export class ForumController {
       const replies = await forumService.getReplies(id);
 
       // Get user's vote if authenticated
-      let userVote = null;
+      let userVote: any = null;
       if ((req as any).user) {
         userVote = await forumService.getUserVote((req as any).user.id, 'thread', id);
       }

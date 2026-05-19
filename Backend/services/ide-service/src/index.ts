@@ -192,8 +192,12 @@ async function startServer() {
       console.log(`[ide-service] 🔌 WebSocket: ws://localhost:${PORT}/ws/keystrokes`);
     });
   } catch (error) {
-    console.error('[ide-service] ❌ Failed to start server:', error);
-    process.exit(1);
+    console.error('[ide-service] ⚠️ Database connection failed, but starting server anyway:', error);
+    
+    server.listen(PORT, () => {
+      console.log(`[ide-service] 🚀 Server running on port ${PORT} (without DB)`);
+      console.log(`[ide-service] 📝 Health check: http://localhost:${PORT}/health`);
+    });
   }
 }
 

@@ -53,8 +53,8 @@ if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
         const response = await fetch('https://graph.microsoft.com/v1.0/me', {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
-        const profile = await response.json();
-
+        const profile = await response.json() as any;
+        
         // Transform to standard format
         const standardProfile = {
           id: profile.id,

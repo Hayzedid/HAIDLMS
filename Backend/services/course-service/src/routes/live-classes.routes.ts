@@ -1,6 +1,6 @@
 import { Router } from 'express';
+import { authenticate, authorize } from '../middleware/authenticate';
 import { liveClassesController } from '../controllers/live-classes.controller';
-import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 

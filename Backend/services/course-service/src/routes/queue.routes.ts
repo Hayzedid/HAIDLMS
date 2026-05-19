@@ -1,7 +1,6 @@
 import { Router } from 'express';
+import { authenticate, authorize } from '../middleware/authenticate';
 import { queueController } from '../controllers/queue.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { authorizeRoles } from '../middlewares/role.middleware';
 
 const router = Router();
 
@@ -49,7 +48,7 @@ const router = Router();
  *       201:
  *         description: Queue created
  */
-router.post('/queues', authenticate, authorizeRoles('admin'), queueController.createQueue.bind(queueController));
+router.post('/queues', authenticate, authorize('admin'), queueController.createQueue.bind(queueController));
 
 /**
  * @swagger
@@ -109,7 +108,7 @@ router.get('/queues/:queueId', authenticate, queueController.getQueue.bind(queue
  *       200:
  *         description: Queue updated
  */
-router.put('/queues/:queueId', authenticate, authorizeRoles('admin'), queueController.updateQueue.bind(queueController));
+router.put('/queues/:queueId', authenticate, authorize('admin'), queueController.updateQueue.bind(queueController));
 
 /**
  * @swagger
@@ -129,7 +128,7 @@ router.put('/queues/:queueId', authenticate, authorizeRoles('admin'), queueContr
  *       200:
  *         description: Queue deleted
  */
-router.delete('/queues/:queueId', authenticate, authorizeRoles('admin'), queueController.deleteQueue.bind(queueController));
+router.delete('/queues/:queueId', authenticate, authorize('admin'), queueController.deleteQueue.bind(queueController));
 
 /**
  * @swagger
@@ -149,7 +148,7 @@ router.delete('/queues/:queueId', authenticate, authorizeRoles('admin'), queueCo
  *       200:
  *         description: Queue paused
  */
-router.post('/queues/:queueId/pause', authenticate, authorizeRoles('admin'), queueController.pauseQueue.bind(queueController));
+router.post('/queues/:queueId/pause', authenticate, authorize('admin'), queueController.pauseQueue.bind(queueController));
 
 /**
  * @swagger
@@ -169,7 +168,7 @@ router.post('/queues/:queueId/pause', authenticate, authorizeRoles('admin'), que
  *       200:
  *         description: Queue resumed
  */
-router.post('/queues/:queueId/resume', authenticate, authorizeRoles('admin'), queueController.resumeQueue.bind(queueController));
+router.post('/queues/:queueId/resume', authenticate, authorize('admin'), queueController.resumeQueue.bind(queueController));
 
 /**
  * @swagger
@@ -228,7 +227,7 @@ router.get('/queues/stats/all', authenticate, queueController.getQueueStatistics
  *       201:
  *         description: Job definition created
  */
-router.post('/definitions', authenticate, authorizeRoles('admin'), queueController.createJobDefinition.bind(queueController));
+router.post('/definitions', authenticate, authorize('admin'), queueController.createJobDefinition.bind(queueController));
 
 /**
  * @swagger
@@ -293,7 +292,7 @@ router.get('/definitions/:definitionId', authenticate, queueController.getJobDef
  *       200:
  *         description: Job definition updated
  */
-router.put('/definitions/:definitionId', authenticate, authorizeRoles('admin'), queueController.updateJobDefinition.bind(queueController));
+router.put('/definitions/:definitionId', authenticate, authorize('admin'), queueController.updateJobDefinition.bind(queueController));
 
 /**
  * @swagger
@@ -313,7 +312,7 @@ router.put('/definitions/:definitionId', authenticate, authorizeRoles('admin'), 
  *       200:
  *         description: Job definition deleted
  */
-router.delete('/definitions/:definitionId', authenticate, authorizeRoles('admin'), queueController.deleteJobDefinition.bind(queueController));
+router.delete('/definitions/:definitionId', authenticate, authorize('admin'), queueController.deleteJobDefinition.bind(queueController));
 
 // ========================================
 // JOBS
@@ -492,7 +491,7 @@ router.get('/jobs/:jobId/logs', authenticate, queueController.getJobLogs.bind(qu
  *       200:
  *         description: Old jobs cleaned up
  */
-router.post('/jobs/cleanup/old', authenticate, authorizeRoles('admin'), queueController.cleanupOldJobs.bind(queueController));
+router.post('/jobs/cleanup/old', authenticate, authorize('admin'), queueController.cleanupOldJobs.bind(queueController));
 
 // ========================================
 // JOB SCHEDULES
@@ -529,7 +528,7 @@ router.post('/jobs/cleanup/old', authenticate, authorizeRoles('admin'), queueCon
  *       201:
  *         description: Job schedule created
  */
-router.post('/schedules', authenticate, authorizeRoles('admin'), queueController.createJobSchedule.bind(queueController));
+router.post('/schedules', authenticate, authorize('admin'), queueController.createJobSchedule.bind(queueController));
 
 /**
  * @swagger
@@ -589,7 +588,7 @@ router.get('/schedules/:scheduleId', authenticate, queueController.getJobSchedul
  *       200:
  *         description: Job schedule updated
  */
-router.put('/schedules/:scheduleId', authenticate, authorizeRoles('admin'), queueController.updateJobSchedule.bind(queueController));
+router.put('/schedules/:scheduleId', authenticate, authorize('admin'), queueController.updateJobSchedule.bind(queueController));
 
 /**
  * @swagger
@@ -609,7 +608,7 @@ router.put('/schedules/:scheduleId', authenticate, authorizeRoles('admin'), queu
  *       200:
  *         description: Job schedule deleted
  */
-router.delete('/schedules/:scheduleId', authenticate, authorizeRoles('admin'), queueController.deleteJobSchedule.bind(queueController));
+router.delete('/schedules/:scheduleId', authenticate, authorize('admin'), queueController.deleteJobSchedule.bind(queueController));
 
 /**
  * @swagger
@@ -629,7 +628,7 @@ router.delete('/schedules/:scheduleId', authenticate, authorizeRoles('admin'), q
  *       200:
  *         description: Job schedule enabled
  */
-router.post('/schedules/:scheduleId/enable', authenticate, authorizeRoles('admin'), queueController.enableJobSchedule.bind(queueController));
+router.post('/schedules/:scheduleId/enable', authenticate, authorize('admin'), queueController.enableJobSchedule.bind(queueController));
 
 /**
  * @swagger
@@ -649,7 +648,7 @@ router.post('/schedules/:scheduleId/enable', authenticate, authorizeRoles('admin
  *       200:
  *         description: Job schedule disabled
  */
-router.post('/schedules/:scheduleId/disable', authenticate, authorizeRoles('admin'), queueController.disableJobSchedule.bind(queueController));
+router.post('/schedules/:scheduleId/disable', authenticate, authorize('admin'), queueController.disableJobSchedule.bind(queueController));
 
 // ========================================
 // WORKERS
@@ -686,7 +685,7 @@ router.post('/schedules/:scheduleId/disable', authenticate, authorizeRoles('admi
  *       201:
  *         description: Worker registered
  */
-router.post('/workers', authenticate, authorizeRoles('admin'), queueController.registerWorker.bind(queueController));
+router.post('/workers', authenticate, authorize('admin'), queueController.registerWorker.bind(queueController));
 
 /**
  * @swagger
@@ -760,7 +759,7 @@ router.post('/workers/:workerId/heartbeat', authenticate, queueController.update
  *       200:
  *         description: Worker unregistered
  */
-router.post('/workers/:workerId/unregister', authenticate, authorizeRoles('admin'), queueController.unregisterWorker.bind(queueController));
+router.post('/workers/:workerId/unregister', authenticate, authorize('admin'), queueController.unregisterWorker.bind(queueController));
 
 /**
  * @swagger
@@ -837,7 +836,7 @@ router.get('/dead-letter', authenticate, queueController.getDeadLetterQueue.bind
  *       200:
  *         description: Dead letter job resolved
  */
-router.post('/dead-letter/:dlqId/resolve', authenticate, authorizeRoles('admin'), queueController.resolveDeadLetterJob.bind(queueController));
+router.post('/dead-letter/:dlqId/resolve', authenticate, authorize('admin'), queueController.resolveDeadLetterJob.bind(queueController));
 
 /**
  * @swagger
@@ -857,7 +856,7 @@ router.post('/dead-letter/:dlqId/resolve', authenticate, authorizeRoles('admin')
  *       200:
  *         description: Dead letter job replayed
  */
-router.post('/dead-letter/:dlqId/replay', authenticate, authorizeRoles('admin'), queueController.replayDeadLetterJob.bind(queueController));
+router.post('/dead-letter/:dlqId/replay', authenticate, authorize('admin'), queueController.replayDeadLetterJob.bind(queueController));
 
 // ========================================
 // STATISTICS

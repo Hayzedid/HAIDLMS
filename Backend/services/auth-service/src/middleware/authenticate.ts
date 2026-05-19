@@ -2,9 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import { TokenPayload, UserRole } from '../types';
 
-export interface AuthRequest extends Request {
-  user?: TokenPayload;
+declare global {
+  namespace Express {
+    interface User extends TokenPayload {}
+  }
 }
+
+export interface AuthRequest extends Request {}
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;

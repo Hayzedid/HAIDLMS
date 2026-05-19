@@ -259,7 +259,7 @@ export class DockerSandbox extends EventEmitter {
         docker.pull(imageName, (err: Error, stream: NodeJS.ReadableStream) => {
           if (err) return reject(err);
 
-          docker.modem.followProgress(stream, (err: Error) => {
+          docker.modem.followProgress(stream, (err: Error | null, _result: any[]) => {
             if (err) return reject(err);
             resolve();
           });

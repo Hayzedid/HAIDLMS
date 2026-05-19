@@ -241,7 +241,7 @@ export class GitHubService {
     paths: string[],
     branch?: string
   ): Promise<Array<{ path: string; content: string; size: number }>> {
-    const results = [];
+    const results: Array<{ path: string; content: string; size: number }> = [];
 
     for (const path of paths) {
       try {

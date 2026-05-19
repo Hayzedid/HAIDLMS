@@ -1,6 +1,6 @@
 import { Router } from 'express';
+import { authenticate, authorize } from '../middleware/authenticate';
 import { AdaptiveAssessmentController } from '../controllers/adaptive-assessment.controller';
-import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 const controller = new AdaptiveAssessmentController();
